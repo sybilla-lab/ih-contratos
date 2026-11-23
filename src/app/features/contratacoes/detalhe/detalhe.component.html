@@ -25,6 +25,11 @@
         <p class="detail-subtitle">{{ contratacao.projeto }} · {{ contratacao.entidade }}</p>
       </div>
       <div class="detail-actions">
+        @if (urlMinutaEnap; as url) {
+          <a class="btn btn-primary" [href]="url" target="_blank" rel="noopener">
+            Gerar minuta ENAP
+          </a>
+        }
         <a class="btn btn-primary" [routerLink]="['/contratacoes', contratacao.id, 'editar']" id="btn-editar-contrato">
           <span class="material-icons">edit_note</span>
           Editar contrato

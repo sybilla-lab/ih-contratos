@@ -102,7 +102,7 @@ export class DashboardComponent implements OnInit {
     return p.nome;
   }
 
-  trackVencimento(_i: number, item: { contratacao: Contratacao }): number {
+  trackVencimento(_i: number, item: { contratacao: Contratacao }): string {
     return item.contratacao.id;
   }
 }

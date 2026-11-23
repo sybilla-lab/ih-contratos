@@ -18,7 +18,7 @@ export interface Clausula {
 }
 
 export interface ContratoDocumento {
-  contratacaoId: number;
+  contratacaoId: string;
   /** Identifica a contratação mesmo se os ids forem reatribuídos num novo import. */
   assinatura: string;
   tipo: TipoDocumento;

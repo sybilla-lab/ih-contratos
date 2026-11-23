@@ -1,20 +1,11 @@
 import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
-import { Observable, map } from "rxjs";
+import { Observable } from "rxjs";
 import * as Papa from "papaparse";
 import { Contratacao } from "../models/contratacao.model";
 import { normalizarTexto } from "../utils/texto";
 
 @Injectable({ providedIn: "root" })
 export class CsvParserService {
-  constructor(private http: HttpClient) {}
-
-  parseFromUrl(url: string): Observable<Contratacao[]> {
-    return this.http.get(url, { responseType: "text" }).pipe(
-      map((csvText) => this.parseCsvText(csvText))
-    );
-  }
-
   parseFromFile(file: File): Observable<Contratacao[]> {
     return new Observable((subscriber) => {
       Papa.parse(file, {
@@ -41,11 +32,30 @@ export class CsvParserService {
     return this.mapRows(result.data as Record<string, string>[]);
   }
 
+  mapPlanilha([cabecalhos, ...linhas]: string[][]): Contratacao[] {
+    if (!cabecalhos) return [];
+    if (!cabecalhos.includes("ID da solicitação")) {
+      throw new Error("A aba de solicitações precisa da coluna ID da solicitação.");
+    }
+    const registros = linhas.filter((linha) => linha.some(Boolean)).map((linha) =>
+      Object.fromEntries(cabecalhos.map((campo, indice) => [campo, linha[indice] ?? ""]))
+    );
+    const ids = new Set<string>();
+    for (const registro of registros) {
+      const id = registro["ID da solicitação"].trim();
+      if (!id || ids.has(id)) {
+        throw new Error("Há solicitações sem ID ou com ID duplicado na planilha.");
+      }
+      ids.add(id);
+    }
+    return this.mapRows(registros);
+  }
+
   private mapRows(rows: Record<string, string>[]): Contratacao[] {
     const headers = Object.keys(rows[0] || {});
 
     return rows.map((row, index) => {
-      const values = headers.map((h) => (row[h] || "").trim());
+      const solicitacaoId = this.findField(row, headers, ["ID da solicitação"]);
 
       // O formulário pergunta isso por extenso; os nomes curtos ficam como
       // alternativa para planilhas de outras safras.
@@ -56,6 +66,13 @@ export class CsvParserService {
         "tipo",
       ]);
 
+      // A aba de respostas traz valor unitário x quantidade; planilhas de outras
+      // safras trazem só o valor fechado. A coluna pode existir e vir vazia, então
+      // o que decide é o conteúdo, não a presença da chave — e quantidade ausente
+      // vale 1, senão um contrato com valor preenchido seria somado como zero.
+      const valorUnitario = this.parseValor(row["Valor unitário"] ?? "");
+      const quantidade = this.parseValor(row["Quantidade"] ?? "");
+      const temValorUnitario = (row["Valor unitário"] ?? "").trim() !== "";
       const valorOriginal = this.findField(row, headers, [
         "Valor",
         "Valor (R$)",
@@ -71,10 +88,15 @@ export class CsvParserService {
       const categoria: "membro" | "pontual" =
         tipoContratacao.toLowerCase().includes("membro") ? "membro" : "pontual";
 
-      const periodo = this.parseVigencia(vigencia);
+      const inicio = this.findField(row, headers, ["Início da vigência", "Data de início"]);
+      const fim = this.findField(row, headers, ["Término da vigência", "Data de término"]);
+      const vigenciaFormatada = [inicio, fim && `até ${fim}`].filter(Boolean).join(" ");
+      const vigenciaFinal = vigenciaFormatada || vigencia;
+      const periodo = this.parseVigencia(vigenciaFinal);
 
       return {
-        id: index + 1,
+        id: solicitacaoId ? `solicitacao-${solicitacaoId}` : String(index + 1),
+        solicitacaoId: solicitacaoId || undefined,
         timestamp: this.findField(row, headers, ["Carimbo de data/hora", "Timestamp"]),
         email: this.findField(row, headers, ["Endereço de e-mail", "Email", "e-mail"]),
         entidade: this.findField(row, headers, ["Identificar a entidade", "Entidade", "entidade"]),
@@ -101,13 +123,15 @@ export class CsvParserService {
           "objeto",
           "Descrição",
         ]),
-        valor: this.parseValor(valorOriginal),
+        valor: temValorUnitario
+          ? valorUnitario * (quantidade || 1)
+          : this.parseValor(valorOriginal),
         valorOriginal,
-        vigencia,
+        vigencia: vigenciaFinal,
         observacoes: this.findField(row, headers, ["Observações", "observacoes", "Obs"]),
         planoTrabalho: this.findField(row, headers, ["Plano de trabalho", "plano"]),
         cotacoes: this.findField(row, headers, ["Cotações", "cotacoes", "Cotação"]),
-        cartaoCnpj: this.findField(row, headers, ["Cartão CNPJ", "CNPJ"]),
+        cartaoCnpj: this.findField(row, headers, ["Cartão CNPJ"]),
         certidaoFiscal: this.findField(row, headers, ["Certidão", "certidao", "CND"]),
         certidaoFgts: this.findField(row, headers, ["FGTS", "fgts", "CRF"]),
         dadosBancarios: this.findField(row, headers, ["Dados bancários", "dados bancarios", "banco"]),
@@ -116,7 +140,7 @@ export class CsvParserService {
         notebook: this.findField(row, headers, ["Notebook", "notebook"]),
         celular: this.findField(row, headers, ["Celular", "celular"]),
         plataformas: this.findField(row, headers, ["Plataformas", "plataformas"]),
-        status: this.calcularStatus(vigencia),
+        status: this.calcularStatus(vigenciaFinal),
         categoria,
         vigenciaInicio: periodo.inicio?.getTime() ?? null,
         vigenciaFim: periodo.fim?.getTime() ?? null,

@@ -1,5 +1,5 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, inject } from "@angular/core";
+import { CommonModule, DOCUMENT } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ContratacaoService } from "../../../core/services/contratacao.service";
 import { ContratoPdfService } from "../../../core/services/contrato-pdf.service";
@@ -16,6 +16,20 @@ import { Contratacao } from "../../../core/models/contratacao.model";
 export class DetalheComponent implements OnInit {
   contratacao: Contratacao | null = null;
   activeTab = "geral";
+  private readonly document = inject(DOCUMENT);
+
+  get urlMinutaEnap(): string | null {
+    const id = this.contratacao?.solicitacaoId;
+    const endpoint = this.document.querySelector<HTMLMetaElement>(
+      'meta[name="ih-minutas-webapp"]'
+    )?.content.trim();
+    if (!id || !endpoint || !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(endpoint)) {
+      return null;
+    }
+    const url = new URL(endpoint);
+    url.searchParams.set("solicitacao", id);
+    return url.href;
+  }
   /** Há edições salvas para este contrato aguardando no navegador. */
   temRascunho = false;
 
@@ -27,7 +41,7 @@ export class DetalheComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get("id"));
+    const id = this.route.snapshot.paramMap.get("id") ?? "";
     this.contratacaoService.getContratacao(id).subscribe((c) => {
       this.contratacao = c || null;
       this.temRascunho = !!c && !!this.rascunhos.carregar(c, "contrato");

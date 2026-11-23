@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_top">
+</head>
+<body>
+  <h1>Gerar minuta ENAP</h1>
+  <p>Confira os dados no Cartão CNPJ anexado à solicitação antes de gerar a minuta.</p>
+  <form id="minuta">
+    <p><label>ID da solicitação <input name="solicitacao" value="<?= solicitacao ?>" required></label></p>
+    <p><label>Razão social <input name="razaoSocial" required></label></p>
+    <p><label>CNPJ <input name="cnpj" required></label></p>
+    <p><label>Endereço completo com CEP <input name="enderecoCompleto" required></label></p>
+    <p><label>Data de emissão <input type="date" name="dataEmissao" required></label></p>
+    <button>Gerar minuta</button>
+  </form>
+  <p id="status" role="status"></p>
+  <p><a id="documento" target="_blank" rel="noopener" hidden>Abrir minuta no Google Docs</a></p>
+  <script>
+    const formulario = document.getElementById('minuta');
+    const botao = formulario.querySelector('button');
+    const status = document.getElementById('status');
+    const documento = document.getElementById('documento');
+    formulario.addEventListener('submit', evento => {
+      evento.preventDefault();
+      const { solicitacao, dataEmissao, ...cartao } = Object.fromEntries(new FormData(formulario));
+      botao.disabled = true;
+      documento.hidden = true;
+      status.textContent = 'Gerando minuta…';
+      google.script.run
+        .withSuccessHandler(resultado => {
+          botao.disabled = false;
+          documento.href = resultado.url;
+          documento.hidden = false;
+          const pendencias = resultado.pendencias.join(', ');
+          status.textContent = pendencias ? 'Campos para revisão: ' + pendencias : resultado.status;
+        })
+        .withFailureHandler(erro => {
+          botao.disabled = false;
+          status.textContent = erro.message;
+        })
+        .gerarMinutaEnap(solicitacao, cartao, dataEmissao);
+    });
+  </script>
+</body>
+</html>

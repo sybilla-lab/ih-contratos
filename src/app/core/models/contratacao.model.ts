@@ -1,5 +1,6 @@
 export interface Contratacao {
-  id: number;
+  id: string;
+  solicitacaoId?: string;
   timestamp: string;
   email: string;
   entidade: string;

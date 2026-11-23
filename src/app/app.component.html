@@ -1,6 +1,23 @@
 <div class="app-layout">
-  <app-sidebar></app-sidebar>
+  @if (!planilhaConfigurada || conectado) {
+    <app-sidebar></app-sidebar>
+  }
   <main class="main-content">
-    <router-outlet></router-outlet>
+    @if (planilhaConfigurada) {
+      <div class="detail-actions">
+        <button type="button" class="btn btn-primary" (click)="conectarPlanilha()" [disabled]="carregando">
+          {{ carregando ? "Carregando solicitações…" : conectado ? "Atualizar da planilha" : "Conectar à Gestão de Contratos" }}
+        </button>
+      </div>
+      @if (erro) { <p role="alert">{{ erro }}</p> }
+    } @else {
+      <p role="status">
+        A planilha Gestão de Contratos ainda não está configurada. Enquanto o acesso
+        Google não é liberado, carregue um CSV pela tela Importar.
+      </p>
+    }
+    @if (!planilhaConfigurada || conectado) {
+      <router-outlet></router-outlet>
+    }
   </main>
 </div>

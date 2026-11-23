@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { map, tap } from "rxjs/operators";
+import { HttpClient } from "@angular/common/http";
 import { Contratacao, ContratacaoStats } from "../models/contratacao.model";
 import { CsvParserService } from "./csv-parser.service";
 
@@ -8,13 +9,13 @@ import { CsvParserService } from "./csv-parser.service";
 export class ContratacaoService {
   private contratacoes$ = new BehaviorSubject<Contratacao[]>([]);
 
-  constructor(private csvParser: CsvParserService) {}
+  constructor(private csvParser: CsvParserService, private http: HttpClient) {}
 
   getContratacoes(): Observable<Contratacao[]> {
     return this.contratacoes$.asObservable();
   }
 
-  getContratacao(id: number): Observable<Contratacao | undefined> {
+  getContratacao(id: string): Observable<Contratacao | undefined> {
     return this.contratacoes$.pipe(
       map((list) => list.find((c) => c.id === id))
     );
@@ -24,11 +25,16 @@ export class ContratacaoService {
     return this.contratacoes$.pipe(map((list) => this.calcularStats(list)));
   }
 
-  loadFromUrl(url: string): void {
-    this.csvParser.parseFromUrl(url).subscribe({
-      next: (data) => this.contratacoes$.next(data),
-      error: (err) => console.error("Erro ao carregar CSV:", err),
-    });
+  carregarDaPlanilha(id: string, token: string): Observable<Contratacao[]> {
+    const aba = encodeURIComponent("'Respostas ao formulário 1'!A:AN");
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(id)}/values/${aba}`;
+    return this.http.get<{ values?: string[][] }>(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { valueRenderOption: "FORMATTED_VALUE" },
+    }).pipe(
+      map(({ values }) => this.csvParser.mapPlanilha(values ?? [])),
+      tap((contratacoes) => this.contratacoes$.next(contratacoes))
+    );
   }
 
   loadFromFile(file: File): void {

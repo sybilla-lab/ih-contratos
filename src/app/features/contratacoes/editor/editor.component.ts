@@ -49,7 +49,7 @@ export class EditorComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get("id"));
+    const id = this.route.snapshot.paramMap.get("id") ?? "";
     const tipoParam = this.route.snapshot.queryParamMap.get("tipo");
     if (tipoParam === "aditivo") this.tipo = "aditivo";
 

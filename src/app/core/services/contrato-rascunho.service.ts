@@ -43,11 +43,11 @@ export class ContratoRascunhoService {
     }
   }
 
-  descartar(contratacaoId: number, tipo: TipoDocumento): void {
+  descartar(contratacaoId: string, tipo: TipoDocumento): void {
     localStorage.removeItem(this.chave(contratacaoId, tipo));
   }
 
-  private chave(id: number, tipo: TipoDocumento): string {
+  private chave(id: string, tipo: TipoDocumento): string {
     return `${this.PREFIXO}${tipo}:${id}`;
   }
 }
