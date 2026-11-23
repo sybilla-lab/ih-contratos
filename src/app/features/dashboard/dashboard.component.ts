@@ -1,113 +1,108 @@
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { NgChartsModule } from "ng2-charts";
-import { ChartConfiguration } from "chart.js";
-import { Chart, registerables } from "chart.js";
 import { ContratacaoService } from "../../core/services/contratacao.service";
-import { ContratacaoStats } from "../../core/models/contratacao.model";
+import { Contratacao, ContratacaoStats } from "../../core/models/contratacao.model";
 
-Chart.register(...registerables);
-
+/**
+ * As barras são desenhadas em HTML/CSS, não em canvas. Os nomes de projeto são
+ * longos ("Estratégia Alimenta Cidades +10…"), e num eixo de canvas eles saem
+ * truncados e girados; em barras horizontais de HTML o rótulo fica na
+ * horizontal, legível, selecionável e acessível a leitor de tela — a própria
+ * marcação já é a versão em tabela do gráfico.
+ */
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink, NgChartsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
 })
 export class DashboardComponent implements OnInit {
   stats: ContratacaoStats | null = null;
 
-  barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
-  barChartOptions: ChartConfiguration<"bar">["options"] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "#1C1C28",
-        borderColor: "rgba(139, 58, 58, 0.3)",
-        borderWidth: 1,
-        titleColor: "#F0F0F5",
-        bodyColor: "#A0A0B0",
-        padding: 12,
-        cornerRadius: 8,
-      },
-    },
-    scales: {
-      x: {
-        ticks: { color: "#6B6B7B", font: { size: 11 } },
-        grid: { color: "rgba(255,255,255,0.03)" },
-      },
-      y: {
-        ticks: { color: "#6B6B7B", font: { size: 11 } },
-        grid: { color: "rgba(255,255,255,0.05)" },
-      },
-    },
+  readonly rotuloStatus: Record<Contratacao["status"], string> = {
+    ativo: "Vigentes",
+    futuro: "A iniciar",
+    encerrado: "Encerrados",
+    indefinido: "Sem data",
   };
 
-  doughnutChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
-  doughnutChartOptions: ChartConfiguration<"doughnut">["options"] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: "70%",
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: { color: "#A0A0B0", padding: 16, usePointStyle: true, pointStyle: "circle" },
-      },
-    },
+  /** Status nunca vai só na cor: cada um carrega ícone e rótulo. */
+  readonly iconeStatus: Record<Contratacao["status"], string> = {
+    ativo: "play_circle",
+    futuro: "schedule",
+    encerrado: "check_circle",
+    indefinido: "help",
   };
 
-  constructor(private contratacaoService: ContratacaoService) {}
+  constructor(public contratacaoService: ContratacaoService) {}
 
   ngOnInit(): void {
-    this.contratacaoService.getStats().subscribe((stats) => {
-      this.stats = stats;
-      this.updateCharts(stats);
-    });
+    this.contratacaoService.getStats().subscribe((stats) => (this.stats = stats));
   }
 
-  formatCurrency(value: number): string {
+  // ===== Formatação =====
+
+  moeda(valor: number): string {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(valor);
   }
 
-  private updateCharts(stats: ContratacaoStats): void {
-    const topProjetos = stats.porProjeto.slice(0, 8);
-    this.barChartData = {
-      labels: topProjetos.map((p) => this.truncateLabel(p.nome, 20)),
-      datasets: [
-        {
-          data: topProjetos.map((p) => p.count),
-          backgroundColor: [
-            "#8B3A3A", "#A85454", "#6E2D2D", "#D4A0A0",
-            "#B06060", "#9C4848", "#C08080", "#7E3232",
-          ],
-          borderRadius: 6,
-          borderSkipped: false,
-        },
-      ],
-    };
-
-    this.doughnutChartData = {
-      labels: ["Membro Equipe", "Serviço Pontual"],
-      datasets: [
-        {
-          data: [stats.porCategoria.membro, stats.porCategoria.pontual],
-          backgroundColor: ["#8B3A3A", "#FBBF24"],
-          borderWidth: 0,
-          hoverOffset: 8,
-        },
-      ],
-    };
+  /** Rótulo curto para o topo da lista: "hoje", "amanhã", "em 12 dias". */
+  prazo(dias: number): string {
+    if (dias === 0) return "vence hoje";
+    if (dias === 1) return "vence amanhã";
+    if (dias < 60) return `em ${dias} dias`;
+    return `em ${Math.round(dias / 30)} meses`;
   }
 
-  private truncateLabel(label: string, maxLen: number): string {
-    return label.length > maxLen ? label.substring(0, maxLen) + "…" : label;
+  /** Faixa de urgência do vencimento — vira cor e é dita no texto também. */
+  urgencia(dias: number): "alta" | "media" | "baixa" {
+    if (dias <= 30) return "alta";
+    if (dias <= this.contratacaoService.DIAS_ALERTA_VENCIMENTO) return "media";
+    return "baixa";
+  }
+
+  percentual(parte: number, total: number): number {
+    return total > 0 ? (parte / total) * 100 : 0;
+  }
+
+  // ===== Escalas das barras =====
+
+  get projetosVisiveis(): ContratacaoStats["porProjeto"] {
+    return this.stats?.porProjeto.slice(0, 8) ?? [];
+  }
+
+  get entidadesVisiveis(): ContratacaoStats["porEntidade"] {
+    return this.stats?.porEntidade.slice(0, 5) ?? [];
+  }
+
+  /**
+   * A barra é proporcional ao maior valor da própria lista, não ao total: com
+   * um projeto concentrando metade dos contratos, escalar pelo total deixaria
+   * todo o resto rente a zero e ilegível.
+   */
+  larguraBarra(valor: number, maximo: number): number {
+    return maximo > 0 ? Math.max((valor / maximo) * 100, 1.5) : 0;
+  }
+
+  get maxProjeto(): number {
+    return this.projetosVisiveis[0]?.count ?? 0;
+  }
+
+  get maxEntidade(): number {
+    return this.entidadesVisiveis[0]?.count ?? 0;
+  }
+
+  trackProjeto(_i: number, p: { nome: string }): string {
+    return p.nome;
+  }
+
+  trackVencimento(_i: number, item: { contratacao: Contratacao }): number {
+    return item.contratacao.id;
   }
 }

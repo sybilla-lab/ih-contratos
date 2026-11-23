@@ -45,7 +45,8 @@
 
   /* Sizing */
   --sidebar-width: 260px;
-  --header-height: 64px;
+  /* Nao ha barra de topo: o conteudo comeca no alto da propria pagina. */
+  --topo-fixo: 16px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -118,7 +119,6 @@ a:hover {
   flex: 1;
   margin-left: var(--sidebar-width);
   padding: 24px 32px;
-  padding-top: calc(var(--header-height) + 24px);
   min-height: 100vh;
   transition: margin-left var(--transition-base);
 }
@@ -464,4 +464,96 @@ a:hover {
 .material-icons {
   font-size: 20px;
   vertical-align: middle;
+}
+
+/* ===== TEXTO DE DOCUMENTO ===== */
+/* Compartilhado pela superfície de edição e pela pré-visualização, para que o
+   que se digita seja exatamente o que se vê antes de gerar o PDF. */
+.doc-texto {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  outline: none;
+}
+
+.doc-texto > * + * { margin-top: 10px; }
+.doc-texto ul, .doc-texto ol { padding-left: 22px; }
+.doc-texto li { margin-top: 4px; }
+.doc-texto li::marker { color: var(--ih-bordo-light); }
+.doc-texto strong { color: var(--text-primary); font-weight: 600; }
+
+/* Variável ligada ao cadastro da contratação */
+.doc-texto .var-chip {
+  background: rgba(139, 58, 58, 0.22);
+  border: 1px solid var(--border-accent);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--text-accent);
+  font-size: 0.8em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Placeholder do Tiptap no parágrafo vazio */
+.doc-texto p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ===== BREADCRUMB ===== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 0.8125rem;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+}
+
+.breadcrumb-link:hover { color: var(--text-primary); }
+
+.breadcrumb-link .material-icons { font-size: 16px; }
+
+.breadcrumb-separator { color: var(--text-muted); }
+
+.breadcrumb-current { color: var(--text-secondary); }
+
+/* ===== TOKENS DE VISUALIZAÇÃO =====
+   Degraus da matiz da marca escolhidos para o fundo escuro, não a cor de
+   botão: o bordô #8B3A3A tem contraste 2.37:1 sobre o card e fica abafado
+   como preenchimento de dado. Estes dois passam nos seis checks contra a
+   superfície #16161F (banda de luminosidade, croma, separação para daltonismo
+   ΔE 15.0, piso de visão normal ΔE 17.2 e contraste ≥ 3:1). */
+:root {
+  --viz-serie-1: #A85454;
+  --viz-serie-2: #C08A10;
+  --viz-trilho: rgba(255, 255, 255, 0.05);
+  --viz-gap: 2px;
+}
+
+/* ===== FOCO VISÍVEL =====
+   Navegação por teclado precisa de um alvo evidente; o padrão do navegador
+   some no tema escuro. */
+:focus-visible {
+  outline: 2px solid var(--ih-bordo-light);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

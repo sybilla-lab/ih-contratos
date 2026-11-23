@@ -52,6 +52,9 @@ export class ContratacaoService {
     return this.contratacoes$.value.length;
   }
 
+  /** Prazo usual de renovação: é o que conta como "vencendo em breve". */
+  readonly DIAS_ALERTA_VENCIMENTO = 90;
+
   private calcularStats(list: Contratacao[]): ContratacaoStats {
     const projetoMap = new Map<string, { count: number; valor: number }>();
     const entidadeMap = new Map<string, number>();
@@ -76,9 +79,13 @@ export class ContratacaoService {
       entidadeMap.set(ent, (entidadeMap.get(ent) || 0) + 1);
     }
 
+    const comValor = list.filter((c) => c.valor > 0).length;
+    const aVencer = this.calcularAVencer(list);
+
     return {
       total: list.length,
       valorTotal,
+      valorMedio: comValor ? valorTotal / comValor : 0,
       ativos,
       projetos: projetoMap.size,
       porProjeto: Array.from(projetoMap.entries())
@@ -88,6 +95,38 @@ export class ContratacaoService {
       porEntidade: Array.from(entidadeMap.entries())
         .map(([nome, count]) => ({ nome, count }))
         .sort((a, b) => b.count - a.count),
+      porStatus: this.contarStatus(list),
+      aVencer,
+      vencendoEmBreve: aVencer.filter((i) => i.diasRestantes <= this.DIAS_ALERTA_VENCIMENTO).length,
     };
+  }
+
+  private contarStatus(list: Contratacao[]): ContratacaoStats["porStatus"] {
+    const ordem: Contratacao["status"][] = ["ativo", "futuro", "encerrado", "indefinido"];
+    return ordem.map((chave) => ({
+      chave,
+      count: list.filter((c) => c.status === chave).length,
+    }));
+  }
+
+  /**
+   * Fila de renovação: contratos cuja vigência ainda vai terminar, do mais
+   * próximo ao mais distante. É o que exige ação — renovar, aditivar ou
+   * encerrar antes da data.
+   */
+  private calcularAVencer(list: Contratacao[]): ContratacaoStats["aVencer"] {
+    const DIA = 86_400_000;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const inicio = hoje.getTime();
+
+    return list
+      .filter((c) => c.vigenciaFim !== null && c.status !== "encerrado")
+      .map((c) => ({
+        contratacao: c,
+        diasRestantes: Math.round(((c.vigenciaFim as number) - inicio) / DIA),
+      }))
+      .filter((i) => i.diasRestantes >= 0)
+      .sort((a, b) => a.diasRestantes - b.diasRestantes);
   }
 }

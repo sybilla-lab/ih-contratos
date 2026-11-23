@@ -13,6 +13,11 @@ export const routes: Routes = [
       import("./features/contratacoes/lista/lista.component").then((m) => m.ListaComponent),
   },
   {
+    path: "contratacoes/:id/editar",
+    loadComponent: () =>
+      import("./features/contratacoes/editor/editor.component").then((m) => m.EditorComponent),
+  },
+  {
     path: "contratacoes/:id",
     loadComponent: () =>
       import("./features/contratacoes/detalhe/detalhe.component").then((m) => m.DetalheComponent),

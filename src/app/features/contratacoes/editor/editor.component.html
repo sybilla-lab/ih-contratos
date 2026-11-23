@@ -1,0 +1,262 @@
+<div class="editor-page">
+  @if (contratacao && documento) {
+    <!-- Breadcrumb -->
+    <div class="breadcrumb animate-fade-in">
+      <a [routerLink]="['/contratacoes', contratacao.id]" class="breadcrumb-link">
+        <span class="material-icons">arrow_back</span>
+        {{ contratacao.fornecedorNome || 'Contratação' }}
+      </a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">Editar documento</span>
+    </div>
+
+    <!-- Barra de ferramentas: age sobre o bloco em foco -->
+    <div class="editor-bar animate-slide-up" (mousedown)="$event.preventDefault()">
+      <div class="tipo-switch">
+        <button class="tipo-opt" [class.tipo-ativo]="tipo === 'contrato'" (click)="trocarTipo('contrato')" id="tipo-contrato">Contrato</button>
+        <button class="tipo-opt" [class.tipo-ativo]="tipo === 'aditivo'" (click)="trocarTipo('aditivo')" id="tipo-aditivo">Aditivo</button>
+      </div>
+
+      <span class="bar-sep"></span>
+
+      <div class="tools" [class.tools-off]="!editorAtivo || preenchido">
+        <button class="tool" [class.tool-on]="comandoAtivo('bold')" (click)="negrito()" title="Negrito (Ctrl+B)">
+          <span class="material-icons">format_bold</span>
+        </button>
+        <button class="tool" [class.tool-on]="comandoAtivo('italic')" (click)="italico()" title="Itálico (Ctrl+I)">
+          <span class="material-icons">format_italic</span>
+        </button>
+        <button class="tool" [class.tool-on]="comandoAtivo('underline')" (click)="sublinhado()" title="Sublinhado (Ctrl+U)">
+          <span class="material-icons">format_underlined</span>
+        </button>
+        <span class="bar-sep"></span>
+        <button class="tool" [class.tool-on]="comandoAtivo('bulletList')" (click)="listaSimples()" title="Lista">
+          <span class="material-icons">format_list_bulleted</span>
+        </button>
+        <button class="tool" [class.tool-on]="comandoAtivo('orderedList')" (click)="listaNumerada()" title="Lista com letras">
+          <span class="material-icons">format_list_numbered</span>
+        </button>
+        <span class="bar-sep"></span>
+        <button class="tool" (click)="desfazer()" title="Desfazer (Ctrl+Z)">
+          <span class="material-icons">undo</span>
+        </button>
+        <button class="tool" (click)="refazer()" title="Refazer (Ctrl+Shift+Z)">
+          <span class="material-icons">redo</span>
+        </button>
+      </div>
+
+      <span class="bar-sep"></span>
+
+      <!-- Variáveis puxadas do cadastro -->
+      <div class="var-menu">
+        <button class="tool tool-wide" [class.tool-on]="mostrarVariaveis" [disabled]="!editorAtivo || preenchido"
+                (click)="mostrarVariaveis = !mostrarVariaveis" id="btn-variaveis">
+          <span class="material-icons">data_object</span>
+          Inserir dado
+        </button>
+        @if (mostrarVariaveis) {
+          <div class="var-drop animate-scale-in">
+            <p class="var-drop-hint">Puxado do cadastro — muda sozinho se o CSV mudar.</p>
+            @for (v of template.variaveis; track v.chave) {
+              <button class="var-item" (click)="inserirVariavel(v.chave)">
+                <span class="var-item-nome">{{ v.rotulo }}</span>
+                <span class="var-item-valor">{{ template.valorDe(v.chave, contratacao) || '—' }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="bar-right">
+        <span class="salvo" [class.salvo-pendente]="salvando">
+          <span class="material-icons">{{ salvando ? 'sync' : 'cloud_done' }}</span>
+          {{ salvando ? 'salvando…' : 'salvo' }}
+        </span>
+
+        <button class="tool tool-wide" [class.tool-on]="preenchido" (click)="preenchido = !preenchido" id="btn-preview">
+          <span class="material-icons">{{ preenchido ? 'edit' : 'visibility' }}</span>
+          {{ preenchido ? 'Editar' : 'Pré-visualizar' }}
+        </button>
+
+        <button class="btn btn-primary btn-sm" (click)="gerarPdf()" id="btn-gerar-pdf">
+          <span class="material-icons">picture_as_pdf</span>
+          Gerar PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-layout">
+      <!-- Sumário + pendências -->
+      <aside class="sumario">
+        @if (pendencias.length) {
+          <div class="pend-box" id="pendencias">
+            <div class="pend-head">
+              <span class="material-icons">error_outline</span>
+              {{ pendencias.length }} {{ pendencias.length === 1 ? 'pendência' : 'pendências' }}
+            </div>
+            <p class="pend-sub">Resolva antes de mandar para assinatura.</p>
+            @for (p of pendencias; track $index) {
+              <button class="pend-item" (click)="irPara(p.origem)">
+                <span class="pend-trecho">{{ p.trecho }}</span>
+                <span class="pend-onde">
+                  {{ p.tipo === 'variavel-vazia' ? 'sem dado no cadastro' : 'preencher no texto' }}
+                  · {{ p.rotuloOrigem }}
+                </span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="pend-box pend-ok">
+            <div class="pend-head">
+              <span class="material-icons">task_alt</span>
+              Sem pendências
+            </div>
+            <p class="pend-sub">Nenhum campo em branco no documento.</p>
+          </div>
+        }
+
+        <div class="sum-head">
+          <span>Cláusulas</span>
+          <button class="tool tool-mini" (click)="restaurarTudo()" title="Voltar ao modelo padrão">
+            <span class="material-icons">restart_alt</span>
+          </button>
+        </div>
+
+        <ul class="sum-lista">
+          @for (cl of documento.clausulas; track trackClausula($index, cl)) {
+            <li class="sum-item" [class.sum-fora]="!cl.incluida">
+              <button class="sum-toggle" (click)="alternarInclusao(cl)"
+                      [title]="cl.incluida ? 'Remover do documento' : 'Incluir no documento'">
+                <span class="material-icons">{{ cl.incluida ? 'check_box' : 'check_box_outline_blank' }}</span>
+              </button>
+              <button class="sum-nome" (click)="irPara(cl.id)">
+                @if (cl.incluida) { <span class="sum-num">{{ numeroDe(cl) }}</span> }
+                {{ cl.titulo }}
+                @if (foiEditada(cl)) { <span class="sum-dot" title="Editada"></span> }
+              </button>
+              <span class="sum-acoes">
+                <button class="tool tool-mini" (click)="mover(cl, -1)" title="Subir">
+                  <span class="material-icons">keyboard_arrow_up</span>
+                </button>
+                <button class="tool tool-mini" (click)="mover(cl, 1)" title="Descer">
+                  <span class="material-icons">keyboard_arrow_down</span>
+                </button>
+              </span>
+            </li>
+          }
+        </ul>
+
+        <button class="sum-add" (click)="adicionarClausula()" id="btn-add-clausula">
+          <span class="material-icons">add</span> Nova cláusula
+        </button>
+      </aside>
+
+      <!-- Folha do documento -->
+      <div class="folha-wrap">
+        <article class="folha" [class.folha-preview]="preenchido">
+          <header class="folha-topo">
+            <div class="folha-marca">IMPACT HUB BRASÍLIA</div>
+            <div class="folha-marca-sub">
+              ASSOCIAÇÃO IMPACT HUB BRASIL — CNPJ: 18.702.797/0001-34
+            </div>
+          </header>
+
+          <div id="bloco-titulo" class="folha-titulo-wrap">
+            @if (preenchido) {
+              <h1 class="folha-titulo">{{ resolvidoTexto(documento.titulo) }}</h1>
+            } @else {
+              <input class="folha-titulo folha-titulo-input" [(ngModel)]="documento.titulo"
+                     (ngModelChange)="aoEditar()" aria-label="Título do documento" />
+            }
+          </div>
+
+          <section id="bloco-preambulo" class="folha-bloco">
+            @if (preenchido) {
+              <div class="doc-texto" [innerHTML]="resolvido(documento.preambulo)"></div>
+            } @else {
+              <app-rich-editor [value]="documento.preambulo"
+                               (valueChange)="documento.preambulo = $event; aoEditar()"
+                               (ativado)="definirEditorAtivo($event)"
+                               placeholder="Identificação das partes e considerandos…" />
+            }
+          </section>
+
+          @for (cl of clausulasIncluidas; track trackClausula($index, cl)) {
+            <section class="folha-clausula" [id]="'bloco-' + cl.id">
+              <div class="cl-cabecalho">
+                <span class="cl-num">{{ numeroDe(cl) }}.</span>
+                @if (preenchido) {
+                  <h2 class="cl-titulo">{{ resolvidoTexto(cl.titulo) }}</h2>
+                } @else {
+                  <input class="cl-titulo cl-titulo-input" [(ngModel)]="cl.titulo"
+                         (ngModelChange)="aoEditar()" aria-label="Título da cláusula" />
+                }
+                @if (!preenchido) {
+                  <span class="cl-acoes">
+                    @if (foiEditada(cl) && !ehPersonalizada(cl)) {
+                      <button class="tool tool-mini" (click)="restaurar(cl)" title="Restaurar texto padrão">
+                        <span class="material-icons">undo</span>
+                      </button>
+                    }
+                    @if (ehPersonalizada(cl)) {
+                      <button class="tool tool-mini" (click)="remover(cl)" title="Excluir cláusula">
+                        <span class="material-icons">delete_outline</span>
+                      </button>
+                    } @else {
+                      <button class="tool tool-mini" (click)="alternarInclusao(cl)" title="Tirar do documento">
+                        <span class="material-icons">visibility_off</span>
+                      </button>
+                    }
+                  </span>
+                }
+              </div>
+
+              @if (preenchido) {
+                <div class="cl-numerada" [style.--cl-num]="numeroCss(cl)">
+                  <div class="doc-texto" [innerHTML]="resolvido(cl.conteudo)"></div>
+                </div>
+              } @else {
+                <div class="cl-numerada" [style.--cl-num]="numeroCss(cl)">
+                  <app-rich-editor [value]="cl.conteudo"
+                                   (valueChange)="cl.conteudo = $event; aoEditar()"
+                                   (ativado)="definirEditorAtivo($event)"
+                                   placeholder="Texto da cláusula…" />
+                </div>
+              }
+            </section>
+          }
+
+          <section id="bloco-fecho" class="folha-bloco folha-fecho">
+            @if (preenchido) {
+              <div class="doc-texto" [innerHTML]="resolvido(documento.fecho)"></div>
+            } @else {
+              <app-rich-editor [value]="documento.fecho"
+                               (valueChange)="documento.fecho = $event; aoEditar()"
+                               (ativado)="definirEditorAtivo($event)"
+                               placeholder="Parágrafo de fechamento…" />
+            }
+          </section>
+
+          <footer class="folha-assinaturas">
+            <div class="assinatura">
+              <span class="assinatura-linha"></span>
+              <strong>{{ contratacao.entidade || 'ASSOCIAÇÃO IMPACT HUB BRASIL' }}</strong>
+              <span>Contratante</span>
+            </div>
+            <div class="assinatura">
+              <span class="assinatura-linha"></span>
+              <strong>{{ contratacao.fornecedorNome || '[CONTRATADA]' }}</strong>
+              <span>Contratada</span>
+            </div>
+          </footer>
+        </article>
+      </div>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <span class="material-icons empty-state-icon">description</span>
+      <p>Contratação não encontrada. Importe a planilha para editar o contrato.</p>
+      <a routerLink="/importar" class="btn btn-primary" style="margin-top: 16px">Ir para importação</a>
+    </div>
+  }
+</div>

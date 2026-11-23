@@ -55,12 +55,38 @@
       <table class="data-table" id="contratacoes-table">
         <thead>
           <tr>
-            <th>Fornecedor</th>
-            <th>Projeto</th>
-            <th>Tipo</th>
-            <th>Valor</th>
-            <th>Vigência</th>
-            <th>Status</th>
+            <th [attr.aria-sort]="ariaOrdem('fornecedor')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'fornecedor'" (click)="ordenarColuna('fornecedor')" id="sort-fornecedor">
+                Fornecedor <span class="material-icons th-icon">{{ iconeOrdem('fornecedor') }}</span>
+              </button>
+            </th>
+            <th [attr.aria-sort]="ariaOrdem('projeto')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'projeto'" (click)="ordenarColuna('projeto')" id="sort-projeto">
+                Projeto <span class="material-icons th-icon">{{ iconeOrdem('projeto') }}</span>
+              </button>
+            </th>
+            <th [attr.aria-sort]="ariaOrdem('tipo')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'tipo'" (click)="ordenarColuna('tipo')" id="sort-tipo">
+                Tipo <span class="material-icons th-icon">{{ iconeOrdem('tipo') }}</span>
+              </button>
+            </th>
+            <th [attr.aria-sort]="ariaOrdem('valor')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'valor'" (click)="ordenarColuna('valor')" id="sort-valor">
+                Valor <span class="material-icons th-icon">{{ iconeOrdem('valor') }}</span>
+              </button>
+            </th>
+            <th [attr.aria-sort]="ariaOrdem('vigencia')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'vigencia'" (click)="ordenarColuna('vigencia')"
+                      id="sort-vigencia" title="Ordena pela data de início; sem data vai para o fim">
+                Vigência <span class="material-icons th-icon">{{ iconeOrdem('vigencia') }}</span>
+              </button>
+            </th>
+            <th [attr.aria-sort]="ariaOrdem('status')">
+              <button class="th-sort" [class.th-sort-on]="ordenarPor === 'status'" (click)="ordenarColuna('status')"
+                      id="sort-status" title="Ativo, futuro, encerrado, indefinido">
+                Status <span class="material-icons th-icon">{{ iconeOrdem('status') }}</span>
+              </button>
+            </th>
             <th>Ações</th>
           </tr>
         </thead>

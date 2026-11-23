@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ContratacaoService } from "../../../core/services/contratacao.service";
 import { ContratoPdfService } from "../../../core/services/contrato-pdf.service";
+import { ContratoRascunhoService } from "../../../core/services/contrato-rascunho.service";
 import { Contratacao } from "../../../core/models/contratacao.model";
 
 @Component({
@@ -15,17 +16,21 @@ import { Contratacao } from "../../../core/models/contratacao.model";
 export class DetalheComponent implements OnInit {
   contratacao: Contratacao | null = null;
   activeTab = "geral";
+  /** Há edições salvas para este contrato aguardando no navegador. */
+  temRascunho = false;
 
   constructor(
     private route: ActivatedRoute,
     private contratacaoService: ContratacaoService,
-    private pdfService: ContratoPdfService
+    private pdfService: ContratoPdfService,
+    private rascunhos: ContratoRascunhoService
   ) {}
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get("id"));
     this.contratacaoService.getContratacao(id).subscribe((c) => {
       this.contratacao = c || null;
+      this.temRascunho = !!c && !!this.rascunhos.carregar(c, "contrato");
     });
   }
 

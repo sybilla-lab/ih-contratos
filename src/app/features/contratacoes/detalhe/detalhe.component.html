@@ -25,14 +25,20 @@
         <p class="detail-subtitle">{{ contratacao.projeto }} · {{ contratacao.entidade }}</p>
       </div>
       <div class="detail-actions">
-        <button class="btn btn-primary" (click)="gerarContratoPdf()" id="btn-gerar-contrato">
+        <a class="btn btn-primary" [routerLink]="['/contratacoes', contratacao.id, 'editar']" id="btn-editar-contrato">
+          <span class="material-icons">edit_note</span>
+          Editar contrato
+          @if (temRascunho) { <span class="rascunho-dot" title="Você tem edições salvas"></span> }
+        </a>
+        <button class="btn btn-secondary" (click)="gerarContratoPdf()" id="btn-gerar-contrato">
           <span class="material-icons">picture_as_pdf</span>
-          Gerar Contrato
+          Gerar direto
         </button>
-        <button class="btn btn-secondary" (click)="gerarAditivoPdf()" id="btn-gerar-aditivo">
+        <a class="btn btn-ghost" [routerLink]="['/contratacoes', contratacao.id, 'editar']"
+           [queryParams]="{ tipo: 'aditivo' }" id="btn-gerar-aditivo">
           <span class="material-icons">note_add</span>
-          Gerar Aditivo
-        </button>
+          Aditivo
+        </a>
       </div>
     </div>
 

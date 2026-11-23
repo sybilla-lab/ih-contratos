@@ -11,109 +11,174 @@
   </div>
 
   @if (stats) {
-    <!-- KPI Cards -->
+    <!-- Indicadores -->
     <div class="kpi-grid animate-slide-up">
-      <div class="kpi-card stagger-1" id="kpi-total">
-        <div class="kpi-icon-container kpi-icon-bordo">
-          <span class="material-icons">description</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Total de Contratos</span>
-          <span class="kpi-value">{{ stats.total }}</span>
-        </div>
+      <div class="kpi kpi-hero stagger-1" id="kpi-valor">
+        <span class="kpi-label">Valor total contratado</span>
+        <span class="kpi-hero-value">{{ moeda(stats.valorTotal) }}</span>
+        <span class="kpi-meta">Média de {{ moeda(stats.valorMedio) }} por contrato</span>
       </div>
 
-      <div class="kpi-card stagger-2" id="kpi-valor">
-        <div class="kpi-icon-container kpi-icon-green">
-          <span class="material-icons">payments</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Valor Total</span>
-          <span class="kpi-value kpi-value-sm">{{ formatCurrency(stats.valorTotal) }}</span>
-        </div>
+      <div class="kpi stagger-2" id="kpi-total">
+        <span class="kpi-label">Contratos</span>
+        <span class="kpi-value">{{ stats.total }}</span>
+        <span class="kpi-meta">em {{ stats.projetos }} projetos</span>
       </div>
 
-      <div class="kpi-card stagger-3" id="kpi-ativos">
-        <div class="kpi-icon-container kpi-icon-blue">
-          <span class="material-icons">check_circle</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Contratos Ativos</span>
-          <span class="kpi-value">{{ stats.ativos }}</span>
-        </div>
+      <div class="kpi stagger-3" id="kpi-ativos">
+        <span class="kpi-label">Vigentes</span>
+        <span class="kpi-value">{{ stats.ativos }}</span>
+        <!-- Medidor: trilho é um degrau mais claro da mesma rampa -->
+        <span class="kpi-medidor" [attr.aria-label]="'Vigentes: ' + stats.ativos + ' de ' + stats.total">
+          <span class="kpi-medidor-fill" [style.width.%]="percentual(stats.ativos, stats.total)"></span>
+        </span>
+        <span class="kpi-meta">{{ percentual(stats.ativos, stats.total) | number: '1.0-0' }}% da carteira</span>
       </div>
 
-      <div class="kpi-card stagger-4" id="kpi-projetos">
-        <div class="kpi-icon-container kpi-icon-purple">
-          <span class="material-icons">folder_open</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Projetos</span>
-          <span class="kpi-value">{{ stats.projetos }}</span>
-        </div>
+      <div class="kpi stagger-4" [class.kpi-alerta]="stats.vencendoEmBreve > 0" id="kpi-vencer">
+        <span class="kpi-label">Vencendo em {{ contratacaoService.DIAS_ALERTA_VENCIMENTO }} dias</span>
+        <span class="kpi-value">{{ stats.vencendoEmBreve }}</span>
+        <span class="kpi-meta">
+          @if (stats.aVencer.length) {
+            @if (stats.vencendoEmBreve) {
+              <span class="material-icons kpi-meta-icone">error_outline</span>
+            }
+            Próximo {{ prazo(stats.aVencer[0].diasRestantes) }}
+          } @else {
+            Nenhum contrato com data de fim
+          }
+        </span>
       </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="charts-grid animate-slide-up">
-      <div class="chart-card">
-        <h3 class="chart-title">Contratos por Projeto</h3>
-        <div class="chart-container">
-          <canvas baseChart
-            [data]="barChartData"
-            [options]="barChartOptions"
-            type="bar">
-          </canvas>
-        </div>
-      </div>
+    <!-- Distribuição -->
+    <div class="painel-grid animate-slide-up">
+      <section class="painel">
+        <header class="painel-head">
+          <h2 class="painel-title">Contratos por projeto</h2>
+          <span class="painel-sub">8 maiores</span>
+        </header>
 
-      <div class="chart-card chart-card-sm">
-        <h3 class="chart-title">Distribuição por Tipo</h3>
-        <div class="chart-container-sm">
-          <canvas baseChart
-            [data]="doughnutChartData"
-            [options]="doughnutChartOptions"
-            type="doughnut">
-          </canvas>
-        </div>
-        <div class="chart-stats">
-          <div class="chart-stat">
-            <span class="badge badge-membro">Membros</span>
-            <span class="chart-stat-value">{{ stats.porCategoria.membro }}</span>
+        <ul class="barras">
+          @for (p of projetosVisiveis; track trackProjeto($index, p)) {
+            <li class="barra-row">
+              <span class="barra-rotulo" [title]="p.nome">{{ p.nome }}</span>
+              <span class="barra-trilho">
+                <span class="barra-fill" [style.width.%]="larguraBarra(p.count, maxProjeto)"></span>
+              </span>
+              <span class="barra-valor">{{ p.count }}</span>
+              <span class="barra-secundario">{{ moeda(p.valor) }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <div class="coluna-lateral">
+        <section class="painel">
+          <header class="painel-head">
+            <h2 class="painel-title">Composição</h2>
+          </header>
+
+          <!-- Parte-do-todo com 2 segmentos: barra empilhada, não pizza -->
+          <div class="composicao" role="img"
+               [attr.aria-label]="'Membros da equipe: ' + stats.porCategoria.membro + '. Serviços pontuais: ' + stats.porCategoria.pontual + '.'">
+            <span class="comp-seg comp-membro" [style.flex-grow]="stats.porCategoria.membro"></span>
+            <span class="comp-seg comp-pontual" [style.flex-grow]="stats.porCategoria.pontual"></span>
           </div>
-          <div class="chart-stat">
-            <span class="badge badge-pontual">Pontuais</span>
-            <span class="chart-stat-value">{{ stats.porCategoria.pontual }}</span>
-          </div>
-        </div>
+
+          <ul class="legenda">
+            <li class="legenda-item">
+              <span class="legenda-marca comp-membro"></span>
+              <span class="legenda-nome">Membro da equipe</span>
+              <span class="legenda-valor">{{ stats.porCategoria.membro }}</span>
+            </li>
+            <li class="legenda-item">
+              <span class="legenda-marca comp-pontual"></span>
+              <span class="legenda-nome">Serviço pontual</span>
+              <span class="legenda-valor">{{ stats.porCategoria.pontual }}</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="painel">
+          <header class="painel-head">
+            <h2 class="painel-title">Situação da vigência</h2>
+          </header>
+
+          <ul class="situacoes">
+            @for (s of stats.porStatus; track s.chave) {
+              <li class="situacao" [attr.data-status]="s.chave">
+                <span class="material-icons situacao-icone">{{ iconeStatus[s.chave] }}</span>
+                <span class="situacao-nome">{{ rotuloStatus[s.chave] }}</span>
+                <span class="situacao-trilho">
+                  <span class="situacao-fill" [style.width.%]="percentual(s.count, stats.total)"></span>
+                </span>
+                <span class="situacao-valor">{{ s.count }}</span>
+              </li>
+            }
+          </ul>
+        </section>
       </div>
     </div>
 
-    <!-- Top Entidades -->
-    <div class="section-card animate-slide-up">
-      <h3 class="section-title">Top Entidades Contratantes</h3>
-      <div class="entidades-list">
-        @for (ent of stats.porEntidade.slice(0, 5); track ent.nome) {
-          <div class="entidade-item">
-            <span class="entidade-name truncate">{{ ent.nome }}</span>
-            <div class="entidade-bar-container">
-              <div class="entidade-bar" [style.width.%]="(ent.count / stats.total) * 100"></div>
-            </div>
-            <span class="entidade-count">{{ ent.count }}</span>
+    <!-- Ação e concentração -->
+    <div class="painel-grid animate-slide-up">
+      <section class="painel">
+        <header class="painel-head">
+          <h2 class="painel-title">Fila de renovação</h2>
+          <span class="painel-sub">próximos a vencer</span>
+        </header>
+
+        @if (stats.aVencer.length) {
+          <ul class="vencimentos">
+            @for (item of stats.aVencer.slice(0, 6); track trackVencimento($index, item)) {
+              <li>
+                <a class="vencimento" [routerLink]="['/contratacoes', item.contratacao.id]"
+                   [attr.data-urgencia]="urgencia(item.diasRestantes)">
+                  <span class="vencimento-prazo">{{ item.diasRestantes }}<small>d</small></span>
+                  <span class="vencimento-info">
+                    <strong class="truncate">{{ item.contratacao.fornecedorNome || 'Sem fornecedor' }}</strong>
+                    <span class="truncate">{{ item.contratacao.projeto || 'Sem projeto' }}</span>
+                  </span>
+                  <span class="vencimento-valor">{{ moeda(item.contratacao.valor) }}</span>
+                  <span class="material-icons vencimento-seta">chevron_right</span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="vazio">
+            <span class="material-icons">event_busy</span>
+            <p>Nenhum contrato tem data de fim reconhecível na planilha.</p>
           </div>
         }
-      </div>
+      </section>
+
+      <section class="painel">
+        <header class="painel-head">
+          <h2 class="painel-title">Entidades contratantes</h2>
+        </header>
+
+        <ul class="barras">
+          @for (ent of entidadesVisiveis; track ent.nome) {
+            <li class="barra-row barra-row-simples">
+              <span class="barra-rotulo" [title]="ent.nome">{{ ent.nome }}</span>
+              <span class="barra-trilho">
+                <span class="barra-fill" [style.width.%]="larguraBarra(ent.count, maxEntidade)"></span>
+              </span>
+              <span class="barra-valor">{{ ent.count }}</span>
+            </li>
+          }
+        </ul>
+      </section>
     </div>
   } @else {
-    <!-- Loading -->
     <div class="kpi-grid">
-      @for (i of [1,2,3,4]; track i) {
-        <div class="kpi-card">
-          <div class="skeleton" style="width: 48px; height: 48px; border-radius: 12px;"></div>
-          <div class="kpi-content">
-            <div class="skeleton" style="width: 80px; height: 12px;"></div>
-            <div class="skeleton" style="width: 60px; height: 28px; margin-top: 8px;"></div>
-          </div>
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="kpi">
+          <div class="skeleton" style="width: 96px; height: 11px"></div>
+          <div class="skeleton" style="width: 120px; height: 30px; margin-top: 12px"></div>
+          <div class="skeleton" style="width: 72px; height: 11px; margin-top: 12px"></div>
         </div>
       }
     </div>

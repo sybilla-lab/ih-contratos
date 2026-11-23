@@ -1,222 +1,135 @@
-.dashboard {
-  max-width: 1200px;
-}
+.dashboard { max-width: 1240px; }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 32px;
-}
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 24px; }
+.page-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); }
+.page-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
 
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-}
+/* ===== Indicadores ===== */
+.kpi-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-/* KPI Grid */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.kpi-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+.kpi {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 20px 22px; min-height: 132px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all var(--transition-base);
   animation: slideUp var(--transition-slow) ease-out both;
+  transition: border-color var(--transition-base), background var(--transition-base);
 }
+.kpi:hover { border-color: var(--border-default); background: var(--bg-card-hover); }
 
-.kpi-card:hover {
-  border-color: var(--border-accent);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-2px);
+.kpi-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+/* Figura principal da tela — uma só, na mesma família tipográfica do resto */
+.kpi-hero-value { font-size: 3rem; font-weight: 700; line-height: 1.05; letter-spacing: -0.035em; color: var(--text-primary); margin-top: auto; }
+.kpi-value { font-size: 2rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; color: var(--text-primary); margin-top: auto; }
+.kpi-meta { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
+.kpi-meta-icone { font-size: 14px; color: var(--status-encerrado); }
+
+.kpi-hero { background: linear-gradient(140deg, rgba(139, 58, 58, 0.16), transparent 62%), var(--bg-card); border-color: var(--border-accent); }
+.kpi-alerta { border-color: rgba(248, 113, 113, 0.28); }
+
+/* Medidor: trilho é um degrau mais claro da mesma rampa do preenchimento */
+.kpi-medidor { height: 4px; border-radius: 2px; background: var(--viz-trilho); overflow: hidden; }
+.kpi-medidor-fill { display: block; height: 100%; border-radius: 2px; background: var(--viz-serie-1); transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ===== Painéis ===== */
+.painel-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+.coluna-lateral { display: flex; flex-direction: column; gap: 16px; }
+
+.painel { padding: 22px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.painel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.painel-title { font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); }
+.painel-sub { font-size: 0.7rem; color: var(--text-muted); }
+
+/* ===== Barras horizontais ===== */
+.barras { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+
+.barra-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 34% auto;
+  grid-template-areas: "rotulo trilho valor" "secundario trilho valor";
+  align-items: center; column-gap: 12px;
 }
+.barra-row-simples { grid-template-columns: minmax(0, 1fr) 40% auto; grid-template-areas: "rotulo trilho valor"; }
 
-.kpi-icon-container {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.barra-rotulo {
+  grid-area: rotulo; font-size: 0.8125rem; color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.barra-secundario { grid-area: secundario; font-size: 0.7rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
-.kpi-icon-bordo {
-  background: rgba(139, 58, 58, 0.15);
-  color: var(--ih-bordo-light);
+.barra-trilho { grid-area: trilho; height: 8px; border-radius: 0 4px 4px 0; background: var(--viz-trilho); }
+/* Ponta arredondada na extremidade do dado, reta na linha de base */
+.barra-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--viz-serie-1); transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.barra-valor { grid-area: valor; min-width: 26px; text-align: right; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ===== Composição parte-do-todo ===== */
+.composicao { display: flex; gap: var(--viz-gap); height: 10px; margin-bottom: 16px; }
+.comp-seg { border-radius: 3px; }
+.comp-membro { background: var(--viz-serie-1); }
+.comp-pontual { background: var(--viz-serie-2); }
+
+.legenda { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.legenda-item { display: flex; align-items: center; gap: 9px; font-size: 0.8125rem; }
+.legenda-marca { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.legenda-nome { flex: 1; color: var(--text-secondary); }
+.legenda-valor { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ===== Situação (cores de status: sempre com ícone e rótulo) ===== */
+.situacoes { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+.situacao { display: grid; grid-template-columns: auto minmax(0, 1fr) 32% auto; align-items: center; gap: 9px; font-size: 0.8125rem; }
+.situacao-icone { font-size: 15px; }
+.situacao-nome { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.situacao-trilho { height: 4px; border-radius: 2px; background: var(--viz-trilho); }
+.situacao-fill { display: block; height: 100%; border-radius: 2px; transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+.situacao-valor { min-width: 22px; text-align: right; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.situacao[data-status="ativo"] .situacao-icone { color: var(--status-ativo); }
+.situacao[data-status="ativo"] .situacao-fill { background: var(--status-ativo); }
+.situacao[data-status="futuro"] .situacao-icone { color: var(--status-futuro); }
+.situacao[data-status="futuro"] .situacao-fill { background: var(--status-futuro); }
+.situacao[data-status="encerrado"] .situacao-icone { color: var(--text-muted); }
+.situacao[data-status="encerrado"] .situacao-fill { background: var(--text-muted); }
+.situacao[data-status="indefinido"] .situacao-icone { color: var(--status-indefinido); }
+.situacao[data-status="indefinido"] .situacao-fill { background: var(--status-indefinido); }
+
+/* ===== Próximos vencimentos ===== */
+.vencimentos { list-style: none; display: flex; flex-direction: column; }
+.vencimento {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto 18px;
+  align-items: center; gap: 12px; padding: 10px 8px;
+  border-radius: var(--radius-sm); color: inherit;
+  transition: background var(--transition-fast);
 }
+.vencimento:hover { background: var(--bg-elevated); }
 
-.kpi-icon-green {
-  background: rgba(74, 222, 128, 0.1);
-  color: var(--status-ativo);
+.vencimento-prazo {
+  display: flex; align-items: baseline; justify-content: center; gap: 1px;
+  padding: 5px 0; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); color: var(--text-secondary);
+  font-size: 0.9375rem; font-weight: 700; font-variant-numeric: tabular-nums;
 }
+.vencimento-prazo small { font-size: 0.65rem; font-weight: 500; }
+[data-urgencia="alta"] .vencimento-prazo { background: var(--status-encerrado-bg); color: var(--status-encerrado); }
+[data-urgencia="media"] .vencimento-prazo { background: rgba(192, 138, 16, 0.14); color: #D9A21A; }
 
-.kpi-icon-blue {
-  background: rgba(96, 165, 250, 0.1);
-  color: var(--status-futuro);
-}
+.vencimento-info { display: flex; flex-direction: column; min-width: 0; }
+.vencimento-info strong { font-size: 0.8125rem; font-weight: 500; color: var(--text-primary); }
+.vencimento-info span { font-size: 0.7rem; color: var(--text-muted); }
+.vencimento-valor { font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.vencimento-seta { font-size: 18px; color: var(--text-muted); }
 
-.kpi-icon-purple {
-  background: rgba(167, 139, 250, 0.1);
-  color: var(--status-indefinido);
-}
+.vazio { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 0; color: var(--text-muted); text-align: center; }
+.vazio .material-icons { font-size: 26px; color: var(--status-ativo); }
+.vazio p { font-size: 0.8125rem; }
 
-.kpi-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.kpi-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 500;
-}
-
-.kpi-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
-  margin-top: 2px;
-}
-
-.kpi-value-sm {
-  font-size: 1.25rem;
-}
-
-/* Charts Grid */
-.charts-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.chart-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-}
-
-.chart-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 20px;
-}
-
-.chart-container {
-  height: 260px;
-  position: relative;
-}
-
-.chart-container-sm {
-  height: 180px;
-  position: relative;
-}
-
-.chart-stats {
-  display: flex;
-  gap: 16px;
-  margin-top: 16px;
-  justify-content: center;
-}
-
-.chart-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.chart-stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Entidades Section */
-.section-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-}
-
-.section-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 20px;
-}
-
-.entidades-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.entidade-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.entidade-name {
-  width: 200px;
-  flex-shrink: 0;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.entidade-bar-container {
-  flex: 1;
-  height: 6px;
-  background: var(--bg-elevated);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.entidade-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--ih-bordo), var(--ih-bordo-light));
-  border-radius: 3px;
-  transition: width 1s ease-out;
-}
-
-.entidade-count {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  min-width: 30px;
-  text-align: right;
-}
-
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .charts-grid { grid-template-columns: 1fr; }
+  .painel-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .kpi-grid { grid-template-columns: 1fr; }
-  .page-header { flex-direction: column; gap: 16px; }
+  .page-header { flex-direction: column; }
+  .barra-row, .barra-row-simples { grid-template-columns: minmax(0, 1fr) 26% auto; }
 }
